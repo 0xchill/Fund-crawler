@@ -1,9 +1,7 @@
 # server.py
 from flask import Flask, render_template, request, redirect, Response
 import random,json
-import scrapy
-from scrapy.crawler import CrawlerProcess
-from quotes_spider import QuotesSpider
+import pymongo
 
 
 app = Flask(__name__, static_folder="../static/dist", template_folder="../static")
@@ -22,10 +20,14 @@ def worker():
     data = request.get_json()
     result = ''
 
-    process = CrawlerProcess()
-    process.crawl(QuotesSpider)
-    process.start()
+    client = pymongo.MongoClient('mongodb://localhost:27017')
+    db = client['funds_morningstar']
+    cursor = db.funds.find()
+    funds = list()
+    for document in cursor:
+        funds.append(document)
 
+    print(funds[0])
     for item in data:
         # loop over every row
         result += str(item['make']) + '\n'
