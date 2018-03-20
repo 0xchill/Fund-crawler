@@ -3,6 +3,7 @@ import scrapy
 import json
 import os
 import sys
+import pymongo
 from scraper.items import FundItem,AssetItem,PerfItem,TopItem
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -13,17 +14,34 @@ class QuotesSpider(scrapy.Spider):
 
     def start_requests(self):
         url = 'http://www.morningstar.fr/fr/funds/snapshot/snapshot.aspx?id='
-        with open(dir_path + "\isin.json","r") as f:
-            data = json.load(f)
 
-        for pair in data:
-            isin = list(pair)[0]
-            code = pair[isin]
+        self.mongo_uri='mongodb://localhost:27017'
+        self.mongo_db='funds_morningstar'
+        self.client = pymongo.MongoClient(self.mongo_uri)
+        self.db = self.client[self.mongo_db]
+
+        cursor = self.db.isins.find()
+
+        for pair in cursor:
+            isin=pair['isin']
+            code=pair['msCode']
             if code != 'None':
                 req = scrapy.Request(url=url+code, callback=self.parse)
                 req.meta['isin'] = isin
                 req.meta['code'] = code
                 yield req
+        self.client.close()
+
+        # with open(dir_path + "\isin.json","r") as f:
+        #     data = json.load(f)
+            # for pair in data:
+            #     isin = list(pair)[0]
+            #     code = pair[isin]
+            #     if code != 'None':
+            #         req = scrapy.Request(url=url+code, callback=self.parse)
+            #         req.meta['isin'] = isin
+            #         req.meta['code'] = code
+            #         yield req
 
     def get_allocation(self, response,fund):
         portfolio = response.xpath('//*[@id="overviewPortfolioAssetAllocationDiv"]/table')

@@ -1,24 +1,40 @@
 # coding: utf8
 import scrapy
 import csv
-import os 
+import os
+import pymongo
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
-class QuotesSpider(scrapy.Spider):
+class IsinsSpider(scrapy.Spider):
     name = "isin"
 
     def start_requests(self):
-        print(dir_path)
         url = "http://www.morningstar.fr/fr/funds/SecuritySearchResults.aspx?type=ALL&search="
+        self.mongo_uri='mongodb://localhost:27017'
+        self.mongo_db='funds_morningstar'
+        self.client = pymongo.MongoClient(self.mongo_uri)
+        self.db = self.client[self.mongo_db]
+        self.collection_name='isins'
 
-        with open(dir_path+"\codes.csv","r") as f:
-            reader = csv.DictReader(f,delimiter=";",fieldnames=["isin","code"])
-            for row in reader:
-                if reader.line_num > 1:
-                    req = scrapy.Request(url=url+row["isin"], callback=self.parse)
-                    req.meta['isin'] = row['isin']
-                    yield req
+        cursor = self.db.isins.find()
+
+        # with open(dir_path+"\codes.csv","r") as f:
+        #     reader = csv.DictReader(f,delimiter=";",fieldnames=["isin","code"])
+        #     for row in reader:
+        #         if reader.line_num > 1:
+        #             req = scrapy.Request(url=url+row["isin"], callback=self.parse)
+        #             req.meta['isin'] = row['isin']
+        #             yield req
+        for document in cursor:
+            isin = document['isin']
+            code = document['msCode']
+            if code == 'None':
+                req = scrapy.Request(url=url+isin, callback=self.parse)
+                req.meta['isin'] = isin
+                yield req
+        self.client.close()
+
 
     def parse(self, response):
         isin = response.meta['isin']
@@ -30,7 +46,4 @@ class QuotesSpider(scrapy.Spider):
         except IndexError:
             code = 'None'
 
-        return {isin : code}
-
-
-
+        self.db[self.collection_name].update_one({'isin':isin}, {'$set':{'msCode':code}})

@@ -34,10 +34,12 @@
     ]
   },
   "dependencies": {
+    "@axetroy/react-download": "^1.1.0",
     "babel-preset-env": "^1.6.1",
     "css-loader": "^0.28.11",
     "file-loader": "^1.1.11",
     "mdbreact": "^4.2.0",
+    "moment": "^2.21.0",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "style-loader": "^0.20.3",
