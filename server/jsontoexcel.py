@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import xlsxwriter
 from xlsxwriter.utility import xl_range
+from xlsxwriter.utility import xl_rowcol_to_cell
 import json
 from datetime import datetime
 
@@ -40,6 +41,7 @@ def create_excel(json_file):
         })
 
     percent_right = workbook.add_format({'num_format': '0.00 %', 'right':True})
+    percent = workbook.add_format({'num_format': '0.00 %'})
 
     percent_left = workbook.add_format({'num_format': '0.00 %','left':True})
 
@@ -47,92 +49,132 @@ def create_excel(json_file):
     worksheet.merge_range('A1:C1','Fond',merge_format)
     worksheet.write('A2', 'ISIN', merge_format)
     worksheet.write('B2', 'Nom', merge_format)
-    worksheet.write('C2', 'VL (m €)', merge_format)
+    worksheet.write('C2', 'VL (devise)', merge_format)
+    worksheet.write('D2', 'Devise', merge_format)
 
-    worksheet.merge_range('D1:H1','Performances',merge_format)
-    worksheet.write('D2', 'Date', merge_format)
-    worksheet.write('E2', '1janv', merge_format)
-    worksheet.write('F2', '3ans', merge_format)
-    worksheet.write('G2', '5ans', merge_format)
-    worksheet.write('H2', '10ans', merge_format)
+    worksheet.merge_range('E1:I1','Performances',merge_format)
+    worksheet.write('E2', 'Date', merge_format)
+    worksheet.write('F2', '1janv', merge_format)
+    worksheet.write('G2', '3ans', merge_format)
+    worksheet.write('H2', '5ans', merge_format)
+    worksheet.write('I2', '10ans', merge_format)
 
-    worksheet.merge_range('I1:L1','Répartition',merge_format)
-    worksheet.write('I2', 'Actions', merge_format)
-    worksheet.write('J2', 'Obligations', merge_format)
-    worksheet.write('K2', 'Liquidités', merge_format)
-    worksheet.write('L2', 'Autres', merge_format)
+    worksheet.merge_range('J1:M1','Répartition',merge_format)
+    worksheet.write('J2', 'Actions', merge_format)
+    worksheet.write('K2', 'Obligations', merge_format)
+    worksheet.write('L2', 'Liquidités', merge_format)
+    worksheet.write('M2', 'Autres', merge_format)
 
-    worksheet.merge_range('M1:Q1','Régions',merge_format)
-    worksheet.write('M2', 'Top1', merge_format)
-    worksheet.write('N2', 'Top2', merge_format)
-    worksheet.write('O2', 'Top3', merge_format)
-    worksheet.write('P2', 'Top4', merge_format)
-    worksheet.write('Q2', 'Top5', merge_format)
+    sectors = [
+        'technologie',
+        'industriels',
+        'consommation_cyclique',
+        'consommation_defensive',
+        'materiaux_de_base',
+        'sante',
+        'services_financiers',
+        'services_de_communication',
+        'services_publics',
+        'immobilier',
+        'energie',
+        'autres'
+    ]
 
-    worksheet.merge_range('R1:V1','Secteurs',merge_format)
-    worksheet.write('R2', 'Top1', merge_format)
-    worksheet.write('S2', 'Top2', merge_format)
-    worksheet.write('T2', 'Top3', merge_format)
-    worksheet.write('U2', 'Top4', merge_format)
-    worksheet.write('V2', 'Top5', merge_format)
+    geo =[
+        'eurozone',
+        'royaume_uni',
+        'europe_sauf_euro',
+        'etats_unis',
+        'amerique_latine',
+        'japon',
+        'asie_emergente',
+        'asie_pays_developpes',
+        'canada'
+    ]
+
+    worksheet.merge_range('N1:V1','Régions',merge_format)
+
+    for c in range(13,22):
+        cell = xl_rowcol_to_cell(1, c)
+        worksheet.write(cell, geo[13-c], merge_format)
+
+    worksheet.merge_range('W1:AH1','Secteurs',merge_format)
+    for c in range(22,34):
+        cell = xl_rowcol_to_cell(1, c)
+        worksheet.write(cell, sectors[22-c], merge_format)
 
     # Read Json
     row = 2
     col = 0
 
     for line in json_file:
+        # get last item downloaded
+        last_index = len(line['data'])-1
+        data = line['data'][last_index]
+
         worksheet.write(row,col,line['isin'])
         worksheet.write(row,col+1,line['nom'],bold)
-        worksheet.write(row,col+2,line['vl'],right)
+        worksheet.write(row,col+2,data['vl']['vl'])
+        worksheet.write(row,col+3,data['vl']['devise'],right)
 
-        date = datetime.strptime(line['performance']['date'], "%d/%m/%Y")
-        worksheet.write_datetime(row,col+3,date,date_format)
+        date = datetime.strptime(data['performance']['date'], "%d/%m/%Y")
+        worksheet.write_datetime(row,col+4,date,date_format)
 
-        idx = 4
-        for key in list(line["performance"]):
+        # Performance
+        idx = 5
+        for key in list(data["performance"]):
             if key != 'date':
-                nb = line["performance"][key]
+                nb = data["performance"][key]
                 if nb !="-":
                     nb = float(nb.replace(',','.'))/100
                     worksheet.write_number(row,col+idx,nb,percent)
                 else:
                     worksheet.write(row,col+idx,nb)
                 idx = idx + 1
+
+        # Type d'actif
         try:
-            nb = float(line['actions']['total'].replace(",","."))/100
-            worksheet.write_number(row,col+8,nb,percent_left)
+            nb = data['repartition_actifs']['actions']['total']/100
+            worksheet.write_number(row,col+9,nb,percent_left)
         except (KeyError,TypeError):
-            worksheet.write(row,col+8,'-',left)
+            worksheet.write(row,col+9,'-',left)
         try:
-            nb = float(line['obligations']['total'].replace(',','.'))/100
-            worksheet.write_number(row,col+9,nb,percent)
-        except (KeyError,TypeError):
-            worksheet.write(row,col+9,'-')
-        try:
-            nb = float(line['liquidites']['total'].replace(',','.'))/100
+            nb = data['repartition_actifs']['obligations']['total']/100
             worksheet.write_number(row,col+10,nb,percent)
         except (KeyError,TypeError):
             worksheet.write(row,col+10,'-')
         try:
-            nb = float(line['autres']['total'].replace(',','.'))/100
-            worksheet.write_number(row,col+11,nb,percent_right)
+            nb = data['repartition_actifs']['liquidites']['total']/100
+            worksheet.write_number(row,col+11,nb,percent)
         except (KeyError,TypeError):
-            worksheet.write(row,col+11,'-',right)
+            worksheet.write(row,col+11,'-')
+        try:
+            nb = data['repartition_actifs']['autres']['total']/100
+            worksheet.write_number(row,col+12,nb,percent_right)
+        except (KeyError,TypeError):
+            worksheet.write(row,col+12,'-',right)
 
-        keys=['first','second','third','fourth','fifth']
-        for i in range(1,6):
-            s = keys[i-1]
-            worksheet.write(row,col+11+i,line['regions'][s])
+        # Regions
+        for i in range(1,10):
+            s = geo[i-1]
+            try:
+                worksheet.write(row,col+12+i,data['repartition_geo'][s]/100,percent)
+            except KeyError:
+                worksheet.write(row,col+12+i,'-')
 
-        worksheet.write(row,col+17,line['secteurs'][keys[0]],left)
-        for i in range(2,5):
-            s = keys[i-1]
-            worksheet.write(row,col+16+i,line['secteurs'][s])
-            worksheet.write(row,col+21,line['secteurs'][keys[4]],right)
+        #Secteurs
+        for i in range(1,13):
+            s = sectors[i-1]
+            try:
+                worksheet.write(row,col+21+i,data['repartition_secteurs'][s]/100,percent)
+            except KeyError:
+                worksheet.write(row,col+21+i,'-')
 
         row = row + 1
         col = 0
 
+
+    # Set column width
     worksheet.set_column("A:A",15)
     worksheet.set_column("B:B",84)
     worksheet.set_column("C:C",13)
@@ -143,20 +185,12 @@ def create_excel(json_file):
     worksheet.set_column("H:H",7)
     worksheet.set_column("I:I",8)
     worksheet.set_column("J:J",11)
-    worksheet.set_column("K:K",9)
-    worksheet.set_column("L:L",8)
-    worksheet.set_column("M:M",30)
-    worksheet.set_column("N:N",30)
-    worksheet.set_column("O:O",30)
-    worksheet.set_column("P:P",29)
-    worksheet.set_column("Q:Q",29)
-    worksheet.set_column("R:R",34)
-    worksheet.set_column("S:S",34)
-    worksheet.set_column("T:T",34)
-    worksheet.set_column("U:U",34)
-    worksheet.set_column("V:V",34)
+    worksheet.set_column("K:K",15)
+    worksheet.set_column("L:L",15)
+    worksheet.set_column(12,35,30)
+    worksheet.set_column('V:V', 30, right)
 
-    for c in range(0,23):
-        worksheet.write(row,c,'',top)
+    # for c in range(0,23):
+    #     worksheet.write(row,c,'',top)
 
     workbook.close()

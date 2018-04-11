@@ -38,6 +38,18 @@ class MongoPipeline(object):
     def process_item(self, item, spider):
         ## how to handle each post
         # self.db[self.collection_name].insert(dict(item))
-        self.db[self.collection_name].find_one_and_replace({'isin':item['isin']}, dict(item), upsert=True)
+        self.db[self.collection_name].update_one(
+            {
+            'isin':item['isin'],
+            'msCode':item['msCode']
+            },
+            {'$set':{
+                'nom':item['nom'],
+            },
+            '$push':{
+                'data': item['data']
+            }},
+            upsert=True
+        )
         logging.debug("Post added to MongoDB")
         return item

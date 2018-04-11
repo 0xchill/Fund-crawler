@@ -13,6 +13,12 @@ class AssetItem(Item):
     short=Field()
     total=Field()
 
+class TypeItem(Item):
+    actions=Field()
+    obligations=Field()
+    liquidites=Field()
+    autres=Field()
+
 class PerfItem(Item):
     date=Field()
     ytd=Field()
@@ -20,22 +26,44 @@ class PerfItem(Item):
     fiveY=Field()
     tenY=Field()
 
-class TopItem(Item):
-    first=Field()
-    second=Field()
-    third=Field()
-    fourth=Field()
-    fifth=Field()
+class SecteurItem(Item):
+    industriels=Field()
+    technologie=Field()
+    services_financiers=Field()
+    consommation_cyclique=Field()
+    consommation_defensive=Field()
+    sante=Field()
+    materiaux_de_base=Field()
+    services_de_communication=Field()
+    immobilier=Field()
+    services_publics=Field()
+    energie=Field()
+    autres=Field()
+
+class GeoItem(Item):
+    eurozone=Field()
+    royaume_uni=Field()
+    europe_sauf_euro=Field()
+    europe_emergente=Field()
+    etats_unis=Field()
+    amerique_latine=Field()
+    japon=Field()
+    asie_emergente=Field()
+    asie_pays_developpes=Field()
+    canada=Field()
+    afrique=Field()
+    autres=Field()
+
+class DataItem(Item):
+    timestamp=Field()
+    vl=Field()
+    performance=Field()
+    repartition_actifs=Field()
+    repartition_geo=Field()
+    repartition_secteurs=Field()
 
 class FundItem(Item):
     nom=Field()
-    vl=Field()
     msCode=Field()
     isin=Field()
-    actions=Field()
-    obligations=Field()
-    liquidites=Field()
-    autres=Field()
-    performance=Field()
-    regions=Field()
-    secteurs=Field()
+    data=Field()
